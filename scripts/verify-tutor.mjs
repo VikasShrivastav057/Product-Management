@@ -28,7 +28,7 @@ test('search indexes all 52 lessons and seven cases and returns relevant linked 
   assert.ok(searchTutor(index, joinQuestion).some((link) => /#lesson\/1[12]\//.test(link.href)));
   assert.equal(searchTutor(index, 'What is A/B testing?')[0].href, '#lesson/4/1');
   assert.equal(searchTutor(index, 'What is critical path?')[0].href, '#lesson/10/0');
-  assert.match(searchTutor(index, 'How does LIMIT work?')[0].excerpts[0], /LIMIT keeps the review manageable/);
+  assert.match(searchTutor(index, 'How does LIMIT work?')[0].excerpts[0], /LIMIT.*first three/);
   assert.equal(searchTutor(index, 'dyd66ghzc93x').length, 0);
 });
 
@@ -64,7 +64,7 @@ test('answers the lesson chat suggestions from the active lesson', async () => {
   ]) {
     const reply = await (await handleTutor(ask(question, { focus }), {}, index)).json();
     assert.equal(reply.sources[0]?.href, focus, question);
-    assert.match(reply.answer, /SQL lets you ask structured questions.*grain/, question);
+    assert.match(reply.answer, /SQL is a language.*grain/, question);
     assert.equal(reply.answer, `“${reply.sources[0].excerpts[0]}” [1]`);
   }
 

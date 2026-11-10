@@ -150,7 +150,10 @@ function home() {
 function blocks(lesson) {
   return lesson.blocks.map(({ type, value }) => {
     if (type === 'heading') return `<h2>${inline(value)}</h2>`;
-    if (type === 'list') return `<ul>${value.map((item) => `<li>${inline(item)}</li>`).join('')}</ul>`;
+    if (type === 'list' || type === 'steps') {
+      const tag = type === 'steps' ? 'ol' : 'ul';
+      return `<${tag}>${value.map((item) => `<li>${inline(item)}</li>`).join('')}</${tag}>`;
+    }
     if (type === 'code') return `<div class="lesson-code"><div class="code-bar"><span>SQL</span><button type="button" class="btn quiet" data-copy-code>Copy SQL</button></div><pre tabindex="0"><code>${escape(value)}</code></pre></div>`;
     if (type === 'callout' || /^\*\*(?:Practice|Try it)/i.test(value)) return `<div class="practice">${inline(value)}</div>`;
     return `<p>${inline(value)}</p>`;
@@ -165,9 +168,16 @@ function lessonView(mod, index) {
   const label = lastLesson
     ? (complete.has(key) ? 'Open practice quiz' : 'Complete & take quiz')
     : (complete.has(key) ? 'Continue' : 'Complete & continue');
-  return `<div class="lesson-layout"><article class="lesson-body"><span class="eyebrow">MODULE ${two(mod.id)} · LESSON ${index + 1} OF ${mod.lessons.length}</span><h1>${escape(lesson.title)}</h1><div class="lesson-chat-entry"><button class="btn secondary" type="button" data-study-chat-open>Ask about this lesson ${icon('spark')}</button></div><div class="prose">${blocks(lesson)}</div>
+  const words = lesson.glossary ?? [];
+  const glossary = words.length ? `<dl>${words.map(({ term, definition }) => `<dt>${escape(term)}</dt><dd>${inline(definition)}</dd>`).join('')}</dl>` : '';
+  return `<div class="lesson-layout lesson-with-glossary"><article class="lesson-body"><span class="eyebrow">MODULE ${two(mod.id)} · LESSON ${index + 1} OF ${mod.lessons.length}</span><h1>${escape(lesson.title)}</h1><div class="lesson-chat-entry"><button class="btn secondary" type="button" data-study-chat-open>Ask about this lesson ${icon('spark')}</button><a class="btn quiet" href="${practiceHref(mod.id)}">Practice quiz</a></div>
+    ${glossary ? `<details class="lesson-glossary mobile-glossary"><summary>Words in this lesson <span class="muted">· ${words.length} terms</span></summary>${glossary}</details>` : ''}
+    <div class="prose">${blocks(lesson)}</div>
     <div class="lesson-nav"><a class="btn quiet" href="${index > 0 ? lessonHref(mod.id, index - 1) : '#modules'}">${index > 0 ? 'Previous lesson' : 'Course library'}</a><button class="btn quiet" type="button" data-study-chat-open>Ask about this lesson ${icon('spark')}</button><button class="btn primary" type="button" data-complete="${key}" data-next="${next}">${label} ${icon('arrow')}</button></div></article>
-    <aside class="lesson-outline"><span class="eyebrow">MODULE ${two(mod.id)}</span><h2>${escape(mod.title)}</h2><ol>${mod.lessons.map((item, i) => `<li><a href="${lessonHref(mod.id, i)}"${i === index ? ' aria-current="page" class="active"' : ''}>${complete.has(lessonId(mod.id, i)) ? icon('check') : `<span class="lesson-number">${two(i + 1)}</span>`}<span>${escape(item.title)}</span></a></li>`).join('')}</ol><a class="module-practice-link" href="${practiceHref(mod.id)}">${icon('exam')}<span>Practice quiz · 5 questions</span></a></aside></div>`;
+    <div class="lesson-sidebar">
+      ${glossary ? `<aside class="lesson-glossary desktop-glossary" aria-labelledby="lesson-glossary-title"><h2 id="lesson-glossary-title">Words in this lesson</h2>${glossary}</aside>` : ''}
+      <aside class="lesson-outline"><span class="eyebrow">MODULE ${two(mod.id)}</span><h2>${escape(mod.title)}</h2><ol>${mod.lessons.map((item, i) => `<li><a href="${lessonHref(mod.id, i)}"${i === index ? ' aria-current="page" class="active"' : ''}>${complete.has(lessonId(mod.id, i)) ? icon('check') : `<span class="lesson-number">${two(i + 1)}</span>`}<span>${escape(item.title)}</span></a></li>`).join('')}</ol><a class="module-practice-link" href="${practiceHref(mod.id)}">${icon('exam')}<span>Practice quiz · 5 questions</span></a></aside>
+    </div></div>`;
 }
 
 function sessionMessage() {

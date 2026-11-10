@@ -410,6 +410,17 @@ p + p { margin-top: .85em; }
 .progress-track > span { display: block; height: 100%; min-width: 0; border-radius: inherit; background: #337a63; transition: width .25s ease; }
 
 .lesson-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(205px, 25%); align-items: start; gap: 24px; }
+.lesson-with-glossary { grid-template-columns: minmax(0, 1fr) minmax(225px, 29%); }
+.lesson-sidebar { position: sticky; top: 91px; max-height: calc(100dvh - 184px); overflow: auto; display: grid; gap: 12px; }
+.lesson-sidebar .lesson-outline { position: static; max-height: none; overflow: visible; }
+.lesson-glossary { min-width: 0; padding: 15px; border: 1px solid #c9ddcb; border-radius: 13px; background: #edf4ea; color: var(--text); overflow-wrap: anywhere; }
+.lesson-glossary h2, .lesson-glossary summary { font: 750 1.03rem/1.35 var(--sans); color: var(--ink); }
+.lesson-glossary summary { cursor: pointer; }
+.lesson-glossary dl { margin: 11px 0 0; font-size: .87rem; line-height: 1.45; }
+.lesson-glossary dt { color: var(--ink); font-weight: 750; }
+.lesson-glossary dt:not(:first-child) { margin-top: .65em; }
+.lesson-glossary dd { margin: .16em 0 0; }
+.mobile-glossary { display: none; }
 .lesson-body, .lesson-outline, .assessment, .result-panel, .empty-state {
   min-width: 0;
   border: 1px solid var(--line);
@@ -605,6 +616,7 @@ input::placeholder, textarea::placeholder { color: #687c72; }
   :root { --sidebar-width: 206px; --gutter: clamp(21px, 3vw, 36px); }
   .module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .lesson-layout { grid-template-columns: minmax(0, 1fr) minmax(175px, 26%); gap: 15px; }
+  .lesson-with-glossary { grid-template-columns: minmax(0, 1fr) minmax(195px, 29%); }
 }
 
 @media (max-width: 840px) {
@@ -614,6 +626,9 @@ input::placeholder, textarea::placeholder { color: #687c72; }
   .hero h1 { font-size: clamp(2.45rem, 5.5vw, 3.4rem); }
   .lesson-layout { grid-template-columns: minmax(0, 1fr); }
   .lesson-outline { position: static; max-height: none; }
+  .lesson-sidebar { position: static; max-height: none; overflow: visible; }
+  .desktop-glossary { display: none; }
+  .mobile-glossary { display: block; margin-top: 17px; }
 }
 
 @media (max-width: 700px) {
