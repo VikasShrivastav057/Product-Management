@@ -11,7 +11,6 @@ const storage = process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID ?
 const handle = createCourseHandler({
   ...storage,
   secure: onVercel,
-  accessHash: process.env.PM_ACCESS_CODE_SHA256,
   examBank: process.env.PM_EXAM_BANK,
   openAIKey: process.env.OPENAI_API_KEY,
   tutorModel: process.env.OPENAI_TUTOR_MODEL,

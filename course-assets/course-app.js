@@ -82,7 +82,7 @@ async function api(suffix = '', body) {
 
 async function refreshServer() {
   try { server = await api(); sessionState = 'ready'; }
-  catch (error) { sessionState = error.status === 401 ? 'signin' : 'error'; }
+  catch (error) { sessionState = error.status === 401 ? 'cookies' : 'error'; }
 }
 
 function navLinks(active) {
@@ -166,7 +166,7 @@ function lessonView(mod, index) {
 
 function sessionMessage() {
   if (sessionState === 'loading') return '<div class="notice" role="status">Checking your assessment status…</div>';
-  if (sessionState === 'signin') return '<div class="notice"><p>Unlock the course to save your assessment and certificate.</p><a class="btn primary" href="/access">Enter course access code</a></div>';
+  if (sessionState === 'cookies') return '<div class="notice"><p>Allow cookies and reload the course to save your assessment and certificate in this browser.</p><button class="btn primary" type="button" data-action="reload">Reload course</button></div>';
   if (sessionState === 'error') return '<div class="notice"><p>Your assessment status is temporarily unavailable.</p><button type="button" class="btn secondary" data-action="refresh">Try again</button></div>';
   return '';
 }
@@ -368,6 +368,7 @@ root.addEventListener('click', (event) => {
     }
   });
   else if (button.dataset.action === 'refresh') action(refreshServer);
+  else if (button.dataset.action === 'reload') window.location.reload();
   else if (button.dataset.action === 'download' && server.certificate) action(() => downloadCertificate(server.certificate));
 });
 
