@@ -1,6 +1,7 @@
 import { downloadCertificate } from './certificate.js';
 import { createStudio } from './course-studio.js';
 import { createModulePractice, GUESSTIMATE_PRACTICE_ID } from './module-practice.js';
+import { riceCalculator, riceComparison, updateRiceCalculator } from './rice.js';
 
 const root = document.querySelector('#learning-root');
 const studyChat = document.querySelector('#study-chat');
@@ -48,6 +49,8 @@ const two = (number) => String(number).padStart(2, '0');
 const lessonId = (mod, index) => `${mod}-${index}`;
 const lessonHref = (mod, index) => `#lesson/${mod}/${index}`;
 const practiceHref = (mod) => `#practice/${mod}`;
+const riceHref = '#guide/rice';
+const strategyLesson = lessonHref(1, 1);
 const opportunitySizingLesson = lessonHref(13, 4);
 const guesstimatePractice = {
   id: GUESSTIMATE_PRACTICE_ID,
@@ -144,6 +147,7 @@ function card(mod) {
 function library(withChat = false) {
   return `<section id="course-library"><div class="section-head"><div><span class="eyebrow">THE CURRICULUM</span><h2>Explore the modules</h2></div><span class="muted">${course.modules.length} modules · ${lessonCount()} lessons</span></div>
     ${withChat ? `<div class="study-chat-entry"><span class="module-icon">${icon('spark')}</span><div><h3>Have a course question?</h3><p>Ask about any module and get an answer with a link to the lesson.</p></div><button type="button" class="btn secondary" data-study-chat-open>Open course chat ${icon('arrow')}</button></div>` : ''}
+    ${course.guides?.rice ? `<div class="notice"><strong>RICE framework</strong><p>Compare four feature ideas and try the interactive score calculator.</p><a class="text-link" href="${riceHref}">Open the RICE guide ${icon('arrow')}</a></div>` : ''}
     <div class="notice"><strong>Guesstimate practice</strong><p>Estimate demand, market size, revenue, and capacity from a few assumptions. See the calculation after each answer.</p><a class="text-link" href="${practiceHref(guesstimatePractice.id)}">Start guesstimate quiz ${icon('arrow')}</a></div>
     <div class="module-grid">${course.modules.map(card).join('')}</div>
     <div class="notice"><strong>Put the lessons into practice</strong><p>Work through seven case studies and save your own deliverables in your private portfolio.</p><a class="text-link" href="#cases">Explore case studies ${icon('arrow')}</a></div></section>`;
@@ -157,9 +161,22 @@ function home() {
     <div class="metric-grid"><div class="metric-card"><strong>${course.modules.length}</strong><span>COURSE MODULES</span></div><div class="metric-card"><strong>${lessonCount()}</strong><span>SHORT LESSONS</span></div><div class="metric-card"><strong>80%</strong><span>ASSESSMENT PASS MARK</span></div></div>${library()}`;
 }
 
-function blocks(lesson) {
+function learningTable({ caption, headers, rows }) {
+  return `<div class="learning-table" tabindex="0" role="region" aria-label="${escape(caption)}"><table>
+    <caption>${inline(caption)}</caption><thead><tr>${headers.map((header) => `<th scope="col">${inline(header)}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(([label, ...cells]) => `<tr><th scope="row">${inline(label)}</th>${cells.map((cell) => `<td>${inline(cell)}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table></div>`;
+}
+
+function glossaryList(words) {
+  return words.length ? `<dl>${words.map(({ term, definition }) => `<dt>${escape(term)}</dt><dd>${inline(definition)}</dd>`).join('')}</dl>` : '';
+}
+
+function blocks(lesson, heading = 'h2') {
   return lesson.blocks.map(({ type, value }) => {
-    if (type === 'heading') return `<h2>${inline(value)}</h2>`;
+    if (type === 'heading') return `<${heading}>${inline(value)}</${heading}>`;
+    if (type === 'table') return learningTable(value);
+    if (type === 'formula') return `<p class="lesson-formula">${inline(value)}</p>`;
     if (type === 'list' || type === 'steps') {
       const tag = type === 'steps' ? 'ol' : 'ul';
       return `<${tag}>${value.map((item) => `<li>${inline(item)}</li>`).join('')}</${tag}>`;
@@ -168,6 +185,41 @@ function blocks(lesson) {
     if (type === 'callout' || /^\*\*(?:Practice|Try it)/i.test(value)) return `<div class="practice">${inline(value)}</div>`;
     return `<p>${inline(value)}</p>`;
   }).join('');
+}
+
+function tryIt({ practice, interview }, heading) {
+  return `<div class="learning-exercise">
+    <${heading}>Try it yourself</${heading}><p>${inline(practice.prompt)}</p>
+    <details><summary>Reveal the worked answer</summary><p>${inline(practice.answer)}</p></details>
+    </div><${heading}>How to explain it in an interview</${heading}><blockquote>${inline(interview)}</blockquote>`;
+}
+
+function walkthroughView(walkthrough) {
+  return `<section class="lesson-walkthrough" aria-labelledby="worked-example-title">
+    <span class="eyebrow">WORKED WALKTHROUGH</span><h2 id="worked-example-title" tabindex="-1">${inline(walkthrough.title)}</h2>
+    <p>${inline(walkthrough.scenario)}</p>${blocks(walkthrough, 'h3')}${tryIt(walkthrough, 'h3')}
+    </section>`;
+}
+
+function riceGuideView(guide) {
+  const { rows, ranked } = riceComparison(guide.features);
+  const comparison = learningTable({
+    caption: 'Illustrative monthly RICE scores for four delivery app features',
+    headers: ['Feature', 'Reach per month', 'Impact', 'Confidence', 'Effort in person-months', 'RICE score'],
+    rows,
+  });
+  const ranking = `<ol class="rice-ranking">${ranked.map(({ name, score, width }) => `<li><div><span>${inline(name)}</span><strong>${score}</strong></div><span class="rice-bar" aria-hidden="true"><span style="width:${width}%"></span></span></li>`).join('')}</ol>`;
+  const glossary = glossaryList(guide.glossary);
+  return `<div class="lesson-layout lesson-with-glossary"><article class="lesson-body rice-guide">
+    <span class="eyebrow">PRODUCT MANAGEMENT FRAMEWORK</span><h1>${inline(guide.title)}</h1>
+    <div class="lesson-chat-entry"><button class="btn secondary" type="button" data-study-chat-open>Ask about RICE ${icon('spark')}</button><button type="button" class="btn quiet" data-learning-jump="rice-calculator-title">Jump to calculator</button><a class="btn quiet" href="${strategyLesson}">Back to strategy lesson</a></div>
+    <details class="lesson-glossary mobile-glossary"><summary>Words in this guide</summary>${glossary}</details>
+    <div class="prose"><p>${inline(guide.scenario)}</p>${blocks(guide)}
+      <h2>Compare four features</h2>${comparison}<h3>Priority ranking</h3>${ranking}
+      ${guide.decision.map((paragraph) => `<p>${inline(paragraph)}</p>`).join('')}
+      ${riceCalculator(guide.features[0])}${tryIt(guide, 'h2')}
+      <p><a href="https://www.intercom.com/blog/rice-simple-prioritization-for-product-managers">Intercom’s original RICE framework</a></p>
+    </div></article><aside class="lesson-glossary desktop-glossary" aria-labelledby="rice-glossary-title"><h2 id="rice-glossary-title">Words in this guide</h2>${glossary}</aside></div>`;
 }
 
 function lessonView(mod, index) {
@@ -179,11 +231,13 @@ function lessonView(mod, index) {
     ? (complete.has(key) ? 'Open practice quiz' : 'Complete & take quiz')
     : (complete.has(key) ? 'Continue' : 'Complete & continue');
   const words = lesson.glossary ?? [];
-  const glossary = words.length ? `<dl>${words.map(({ term, definition }) => `<dt>${escape(term)}</dt><dd>${inline(definition)}</dd>`).join('')}</dl>` : '';
-  const estimates = (mod.id === 9 && index === 1) || lessonHref(mod.id, index) === opportunitySizingLesson;
-  return `<div class="lesson-layout lesson-with-glossary"><article class="lesson-body"><span class="eyebrow">MODULE ${two(mod.id)} · LESSON ${index + 1} OF ${mod.lessons.length}</span><h1>${escape(lesson.title)}</h1><div class="lesson-chat-entry"><button class="btn secondary" type="button" data-study-chat-open>Ask about this lesson ${icon('spark')}</button><a class="btn quiet" href="${practiceHref(mod.id)}">Practice quiz</a>${estimates ? `<a class="btn quiet" href="${practiceHref(guesstimatePractice.id)}">Guesstimate practice</a>` : ''}</div>
+  const glossary = glossaryList(words);
+  const href = lessonHref(mod.id, index);
+  const estimates = (mod.id === 9 && index === 1) || href === opportunitySizingLesson;
+  const rice = course.guides?.rice && (href === strategyLesson || href === opportunitySizingLesson);
+  return `<div class="lesson-layout lesson-with-glossary"><article class="lesson-body"><span class="eyebrow">MODULE ${two(mod.id)} · LESSON ${index + 1} OF ${mod.lessons.length}</span><h1>${escape(lesson.title)}</h1><div class="lesson-chat-entry"><button class="btn secondary" type="button" data-study-chat-open>Ask about this lesson ${icon('spark')}</button><a class="btn quiet" href="${practiceHref(mod.id)}">Practice quiz</a>${lesson.walkthrough ? '<button type="button" class="btn quiet" data-learning-jump="worked-example-title">Worked walkthrough</button>' : ''}${rice ? `<a class="btn quiet" href="${riceHref}">RICE guide and calculator</a>` : ''}${estimates ? `<a class="btn quiet" href="${practiceHref(guesstimatePractice.id)}">Guesstimate practice</a>` : ''}</div>
     ${glossary ? `<details class="lesson-glossary mobile-glossary"><summary>Words in this lesson <span class="muted">· ${words.length} terms</span></summary>${glossary}</details>` : ''}
-    <div class="prose">${blocks(lesson)}</div>
+    <div class="prose">${blocks(lesson)}${lesson.walkthrough ? walkthroughView(lesson.walkthrough) : ''}</div>
     <div class="lesson-nav"><a class="btn quiet" href="${index > 0 ? lessonHref(mod.id, index - 1) : '#modules'}">${index > 0 ? 'Previous lesson' : 'Course library'}</a><button class="btn quiet" type="button" data-study-chat-open>Ask about this lesson ${icon('spark')}</button><button class="btn primary" type="button" data-complete="${key}" data-next="${next}">${label} ${icon('arrow')}</button></div></article>
     <div class="lesson-sidebar">
       ${glossary ? `<aside class="lesson-glossary desktop-glossary" aria-labelledby="lesson-glossary-title"><h2 id="lesson-glossary-title">Words in this lesson</h2>${glossary}</aside>` : ''}
@@ -238,6 +292,7 @@ function certificate() {
 function currentStudy() {
   const [page, id, index] = location.hash.slice(1).split('/');
   if (page === 'modules') return { label: 'All modules', focus: '' };
+  if (location.hash === riceHref && course?.guides?.rice) return { label: 'RICE framework', focus: riceHref };
   if (page !== 'lesson') return null;
   const module = course?.modules.find((item) => item.id === Number(id));
   const lesson = module?.lessons[Number(index)];
@@ -305,6 +360,7 @@ function render(moveFocus = false) {
   const mod = course.modules.find((item) => item.id === Number(modId));
   const quiz = page === 'practice' ? currentPracticeModule() : null;
   if (page === 'lesson' && mod?.lessons[Number(index)]) root.innerHTML = shell('modules', `Module ${two(mod.id)}`, lessonView(mod, Number(index)));
+  else if (location.hash === riceHref && course.guides?.rice) root.innerHTML = shell('modules', 'RICE framework', riceGuideView(course.guides.rice));
   else if (quiz) root.innerHTML = shell('modules', quiz === guesstimatePractice ? quiz.title : `Module ${two(quiz.id)} practice quiz`, practice.view(quiz));
   else if (page === 'modules') root.innerHTML = shell('modules', 'Course library', `<h1>Course library</h1>${library(true)}`);
   else if (page === 'assessment') root.innerHTML = shell('assessment', 'Final assessment', assessment());
@@ -384,6 +440,15 @@ root.addEventListener('click', (event) => {
     toggleStudyChat(true, button);
     return;
   }
+  if (button.dataset.learningJump) {
+    document.getElementById(button.dataset.learningJump)?.focus();
+    return;
+  }
+  if (button.hasAttribute('data-rice-reset')) {
+    button.form.reset();
+    updateRiceCalculator(button.form);
+    return;
+  }
   if (studio.click(button)) return;
   if (practice.click(button)) return;
   if (button.hasAttribute('data-copy-code')) {
@@ -438,9 +503,16 @@ root.addEventListener('change', (event) => {
   root.querySelector(`input[name="answer"][value="${answer}"]`)?.focus({ preventScroll: true });
 });
 
-root.addEventListener('input', studio.input);
+root.addEventListener('input', (event) => {
+  if (event.target.form?.id === 'rice-form') updateRiceCalculator(event.target.form);
+  else studio.input(event);
+});
 
 root.addEventListener('submit', (event) => {
+  if (event.target.id === 'rice-form') {
+    event.preventDefault();
+    return;
+  }
   if (studio.submit(event)) return;
   if (practice.submit(event)) return;
   if (event.target.id !== 'certificate-form') return;

@@ -477,6 +477,32 @@ p + p { margin-top: .85em; }
 .prose code { border-radius: 4px; background: #edf2e8; padding: .13em .3em; color: var(--pine); font-size: .88em; }
 .prose pre { overflow: auto; border-radius: 9px; background: #edf2e8; padding: 14px; }
 .prose pre code { padding: 0; }
+.lesson-walkthrough { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--line); }
+.lesson-walkthrough > h2 { margin-top: .28em; }
+.learning-table { max-width: 100%; margin: 1em 0; overflow: auto; border: 1px solid var(--line); border-radius: 9px; }
+.learning-table table { width: 100%; min-width: 24rem; border-collapse: collapse; font-size: .88rem; line-height: 1.45; }
+.learning-table caption { padding: 10px 12px; color: var(--ink); font-weight: 750; text-align: left; }
+.learning-table :is(th, td) { padding: 9px 12px; border-top: 1px solid var(--line); text-align: left; vertical-align: top; }
+.learning-table thead { background: var(--teal-soft); }
+.learning-table tbody th { font-weight: 700; }
+.lesson-formula { margin-block: .75em; padding: 10px 13px; border-radius: 8px; background: var(--teal-soft); color: var(--ink); font-weight: 750; }
+.learning-exercise { margin-top: 20px; padding: 15px; border: 1px solid #c9ddcb; border-radius: 9px; background: #edf4ea; }
+.learning-exercise summary { margin-top: 7px; cursor: pointer; font-weight: 750; }
+.learning-exercise details p { margin-top: 6px; }
+.prose blockquote { margin: .8em 0 1.1em; padding-left: 14px; border-left: 3px solid #598875; }
+.rice-guide .learning-table table:has(thead th:nth-child(6)) { min-width: 38rem; }
+.prose .rice-ranking { margin-bottom: 1.2em; padding-left: 1.4em; }
+.rice-ranking li > div { display: flex; justify-content: space-between; gap: 12px; }
+.rice-bar { display: block; height: .6rem; border-radius: 99px; background: var(--teal-soft); }
+.rice-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--teal); }
+.rice-calculator { margin-block: 22px; padding: clamp(14px, 3vw, 22px); border: 1px solid #c9ddcb; border-radius: 11px; background: #edf4ea; }
+.rice-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 165px), 1fr)); gap: 12px; margin-top: 12px; }
+.rice-fields label { display: grid; min-width: 0; gap: 3px; font-weight: 750; }
+.rice-fields small { color: var(--muted); font-weight: 500; }
+.rice-fields :is(input, select) { width: 100%; min-width: 0; }
+.rice-fields input[type='number'] { min-height: 44px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; }
+.rice-result { margin: 14px 0; padding: 12px 14px; border-radius: 8px; background: var(--surface); }
+.rice-result output { display: block; color: var(--pine); font-size: 2rem; font-weight: 800; line-height: 1.25; }
 .practice, .notice {
   border: 1px solid #d9e6d6;
   border-left: 3px solid #598875;

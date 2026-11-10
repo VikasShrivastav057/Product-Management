@@ -18,18 +18,21 @@ function ask(question = joinQuestion, { origin = site, user = 'student', ...extr
   });
 }
 
-test('search indexes all 52 lessons and seven cases and returns relevant linked material', () => {
-  assert.equal(index.length, 59);
+test('search indexes all 52 lessons, seven cases, and the RICE guide', () => {
+  assert.equal(index.length, 60);
   for (const query of [joinQuestion, 'market fit evidence', 'clinic appointment rollout']) {
     const links = searchTutor(index, query);
     assert.ok(links.length >= 2, query);
-    assert.ok(links.every((link) => /^#(?:lesson|case)\//.test(link.href)));
+    assert.ok(links.every((link) => /^#(?:lesson|case|guide)\//.test(link.href)));
     assert.ok(links.every((link) => link.excerpts[0].length > 30));
   }
   assert.ok(searchTutor(index, joinQuestion).some((link) => /#lesson\/1[12]\//.test(link.href)));
   assert.equal(searchTutor(index, 'What is A/B testing?')[0].href, '#lesson/4/1');
   assert.equal(searchTutor(index, 'What is critical path?')[0].href, '#lesson/10/0');
   assert.match(searchTutor(index, 'How does LIMIT work?')[0].excerpts[0], /LIMIT.*first three/);
+  const rice = searchTutor(index, 'How do I calculate a RICE score?').find(({ href }) => href === '#guide/rice');
+  assert.ok(rice?.excerpts.some((text) => /50,000.*20,000/.test(text)));
+  assert.equal(searchTutor(index, 'What should I remember from this lesson?', [], '#guide/rice')[0].href, '#guide/rice');
   assert.equal(searchTutor(index, 'dyd66ghzc93x').length, 0);
 });
 

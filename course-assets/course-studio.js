@@ -88,7 +88,7 @@ export function createStudio({ getCourse, escape, icon, blocks, render, updateTu
   }
 
   function sourceHref(value) {
-    return /^#(?:lesson\/\d+\/\d+|case\/[a-z0-9_-]+)$/i.test(value) ? value : '#modules';
+    return /^#(?:lesson\/\d+\/\d+|case\/[a-z0-9_-]+|guide\/rice)$/i.test(value) ? value : '#modules';
   }
 
   function tutor() {
@@ -210,7 +210,7 @@ export function createStudio({ getCourse, escape, icon, blocks, render, updateTu
       const asked = question;
       const route = location.hash.slice(1).split('/');
       const [context, mod, index] = route[0] === 'tutor' ? route.slice(1) : route;
-      const focus = context === 'lesson' ? `#lesson/${mod}/${index}` : context === 'case' ? `#case/${mod}` : '';
+      const focus = context === 'lesson' ? `#lesson/${mod}/${index}` : context === 'case' ? `#case/${mod}` : context === 'guide' && mod === 'rice' ? '#guide/rice' : '';
       asking = true;
       tutorError = '';
       updateTutorSurface({ latest: true });
