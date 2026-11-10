@@ -47,8 +47,10 @@ const escape = (text) => String(text ?? '').replace(/[&<>"']/g, (char) => escape
 const inline = (text) => escape(text).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code>$1</code>');
 const two = (number) => String(number).padStart(2, '0');
 const lessonId = (mod, index) => `${mod}-${index}`;
+const lessonProgressKey = (id) => `${progressKey}:${id}`;
 const lessonHref = (mod, index) => `#lesson/${mod}/${index}`;
 const practiceHref = (mod) => `#practice/${mod}`;
+const assessmentDraftKey = (id) => `pm-learning-lab:attempt:${id}`;
 const riceHref = '#guide/rice';
 const strategyLesson = lessonHref(1, 1);
 const opportunitySizingLesson = lessonHref(13, 4);
@@ -66,19 +68,37 @@ function getLocal(key, fallback) {
 }
 
 function setLocal(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* The lesson remains readable. */ }
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch { return false; }
 }
 
-const complete = new Set(getLocal(progressKey, []));
-const drafts = new Map();
+const complete = new Set();
+const unsavedAnswers = new Map();
 const lessonCount = () => course.modules.reduce((total, item) => total + item.lessons.length, 0);
 const coursePercent = () => Math.round(100 * complete.size / lessonCount());
 
+function refreshLessonProgress() {
+  const saved = getLocal(progressKey, []);
+  const legacy = new Set(Array.isArray(saved) ? saved : []);
+  for (const { id, lessons } of course.modules) {
+    for (const index of lessons.keys()) {
+      const key = lessonId(id, index);
+      if (legacy.has(key) || getLocal(lessonProgressKey(key), false) === true) complete.add(key);
+    }
+  }
+}
+
 function answers() {
   if (!server.attempt) return [];
-  const key = server.attempt.id;
-  if (!drafts.has(key)) drafts.set(key, getLocal(`pm-learning-lab:attempt:${key}`, Array(10).fill(null)));
-  return drafts.get(key);
+  const prefix = assessmentDraftKey(server.attempt.id);
+  const legacy = getLocal(prefix, []);
+  return server.attempt.questions.map(({ options }, index) => {
+    const key = `${prefix}:${index}`;
+    const value = unsavedAnswers.has(key) ? unsavedAnswers.get(key) : getLocal(key, legacy[index]);
+    return Number.isInteger(value) && value >= 0 && value < options.length ? value : null;
+  });
 }
 
 async function api(suffix = '', body) {
@@ -320,6 +340,10 @@ function renderStudyChat({ focus = false, latest = false } = {}) {
   transcript.scrollTop = latest ? transcript.scrollHeight : oldScroll;
   if (focus || selection) {
     const field = chatContent.querySelector('textarea');
+    if (field.disabled) {
+      chatPanel.querySelector('[data-study-chat-close]').focus({ preventScroll: true });
+      return;
+    }
     field.focus({ preventScroll: true });
     if (selection && !focus) field.setSelectionRange(...selection);
   }
@@ -356,6 +380,7 @@ function currentPracticeModule() {
 
 function render(moveFocus = false) {
   if (!course) return;
+  refreshLessonProgress();
   const [page, modId, index] = (location.hash.slice(1) || 'home').split('/');
   const mod = course.modules.find((item) => item.id === Number(modId));
   const quiz = page === 'practice' ? currentPracticeModule() : null;
@@ -468,7 +493,7 @@ root.addEventListener('click', (event) => {
   }
   if (button.dataset.complete) {
     complete.add(button.dataset.complete);
-    setLocal(progressKey, [...complete]);
+    setLocal(lessonProgressKey(button.dataset.complete), true);
     location.hash = button.dataset.next;
   } else if (button.dataset.question != null) {
     questionIndex = Number(button.dataset.question);
@@ -497,8 +522,10 @@ root.addEventListener('click', (event) => {
 root.addEventListener('change', (event) => {
   if (!event.target.matches('input[name="answer"]') || !server.attempt) return;
   const answer = Number(event.target.value);
-  answers()[questionIndex] = answer;
-  setLocal(`pm-learning-lab:attempt:${server.attempt.id}`, answers());
+  // Separate keys keep tabs answering different questions from replacing each other's work.
+  const key = `${assessmentDraftKey(server.attempt.id)}:${questionIndex}`;
+  if (setLocal(key, answer)) unsavedAnswers.delete(key);
+  else unsavedAnswers.set(key, answer);
   render();
   root.querySelector(`input[name="answer"][value="${answer}"]`)?.focus({ preventScroll: true });
 });

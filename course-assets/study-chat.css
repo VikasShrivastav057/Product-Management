@@ -224,6 +224,12 @@ body:has(#study-chat:not([hidden])) .page-content { padding-bottom: clamp(76px, 
   .study-chat-content .tutor-form :is(textarea, input) { max-height: 74px; }
 }
 
+@media (max-height: 320px) {
+  #study-chat { --chat-panel-bottom: var(--chat-bottom); }
+  #study-chat .study-chat-launcher[aria-expanded='true'] { visibility: hidden; }
+  .study-chat-content { overflow-y: auto; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   #study-chat *, #study-chat *::before, #study-chat *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
 }

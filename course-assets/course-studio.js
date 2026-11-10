@@ -8,6 +8,7 @@ const lessonSuggestions = ['What should I remember from this lesson?', 'Can you 
 export function createStudio({ getCourse, escape, icon, blocks, render, updateTutorSurface }) {
   let entries = null;
   let portfolioLoading = false;
+  let portfolioLoadError = '';
   let portfolioError = '';
   let portfolioMessage = '';
   let sending = false;
@@ -69,6 +70,7 @@ export function createStudio({ getCourse, escape, icon, blocks, render, updateTu
   function portfolio(id) {
     const chosen = draft.caseId || caseById(id)?.id || '';
     const locked = sending ? ' disabled' : '';
+    const error = portfolioError || portfolioLoadError;
     const items = entries?.map((item) => {
       const file = item.filename ? `<a class="text-link" href="/api/portfolio/${encodeURIComponent(item.id)}">Download ${escape(item.filename)} <span class="muted">(${fileSize(item.size)})</span></a>` : '';
       const link = item.demo_url?.startsWith('https://') ? `<a class="text-link" href="${escape(item.demo_url)}" target="_blank" rel="noopener noreferrer">Open demo link ↗</a>` : '';
@@ -81,10 +83,10 @@ export function createStudio({ getCourse, escape, icon, blocks, render, updateTu
         <label class="field">Title<input name="title" maxlength="120" placeholder="e.g. Retention analysis and rollout plan" required value="${escape(draft.title)}"${locked}></label>
         <label class="field">Document or demo file<input name="file" type="file" aria-describedby="file-help"${locked}><small id="file-help">One file up to 4 MiB.${selectedFile ? ` Selected ${escape(selectedFile.name)}.` : ''}</small></label>${selectedFile ? `<button class="btn quiet" type="button" data-clear-file${locked}>Clear selected file</button>` : ''}
         <label class="field">HTTPS demo link <span class="muted">(optional if you add a file)</span><input type="url" name="demoUrl" maxlength="2048" placeholder="https://…" value="${escape(draft.demoUrl)}"${locked}></label>
-        <button class="btn primary" type="submit"${sending || entries === null ? ' disabled' : ''}>${sending ? 'Saving…' : 'Save to portfolio'} ${icon('arrow')}</button></form></section>
-      <section class="studio-panel"><h2>Saved work</h2><p class="muted">Your entries are private to this browser session.</p>${portfolioError ? `<div class="notice studio-error" role="alert">${escape(portfolioError)}</div>` : portfolioMessage ? `<div class="notice" role="status">${escape(portfolioMessage)}</div>` : ''}
-        ${portfolioLoading ? '<p role="status">Loading your portfolio…</p>' : items || '<div class="portfolio-empty"><p>Your portfolio is empty. Start with a case study and save your deliverable here.</p><a class="text-link" href="#cases">Explore case studies</a></div>'}
-        ${entries === null && !portfolioLoading && portfolioError ? '<button type="button" class="btn secondary" data-portfolio-retry>Reload portfolio</button>' : ''}</section></div>`;
+        <button class="btn primary" type="submit"${sending || portfolioLoading || entries === null ? ' disabled' : ''}>${sending ? 'Saving…' : 'Save to portfolio'} ${icon('arrow')}</button></form></section>
+      <section class="studio-panel"><h2>Saved work</h2><p class="muted">Your entries are private to this browser session.</p>${error ? `<div class="notice studio-error" role="alert">${escape(error)}</div>` : portfolioMessage ? `<div class="notice" role="status">${escape(portfolioMessage)}</div>` : ''}
+        ${portfolioLoading ? '<p role="status">Loading your portfolio…</p>' : entries === null ? '' : items || '<div class="portfolio-empty"><p>Your portfolio is empty. Start with a case study and save your deliverable here.</p><a class="text-link" href="#cases">Explore case studies</a></div>'}
+        ${portfolioLoadError ? `<button type="button" class="btn secondary" data-portfolio-retry${sending || removing ? ' disabled' : ''}>Reload portfolio</button>` : ''}</section></div>`;
   }
 
   function sourceHref(value) {
@@ -112,12 +114,13 @@ export function createStudio({ getCourse, escape, icon, blocks, render, updateTu
   }
 
   async function refreshPortfolio() {
-    if (portfolioLoading) return;
+    if (portfolioLoading || sending || removing) return;
     portfolioLoading = true;
+    portfolioLoadError = '';
     portfolioError = '';
     update('portfolio');
     try { entries = (await request('/api/portfolio')).entries; }
-    catch (error) { portfolioError = error.message; }
+    catch (error) { portfolioLoadError = error.message; }
     finally { portfolioLoading = false; update('portfolio'); }
   }
 
@@ -138,7 +141,7 @@ export function createStudio({ getCourse, escape, icon, blocks, render, updateTu
         draft.caseId = linkedCase.id;
         uploadKey = null;
       }
-      if (entries === null && !portfolioLoading) void refreshPortfolio();
+      if (!portfolioLoading && !sending && !removing) void refreshPortfolio();
       else if (caseChanged) update('portfolio');
     }
     if (page === 'tutor') void ensureTutor();
@@ -148,7 +151,7 @@ export function createStudio({ getCourse, escape, icon, blocks, render, updateTu
     if (button.hasAttribute('data-portfolio-retry')) { void refreshPortfolio(); return true; }
     if (button.hasAttribute('data-clear-file')) { selectedFile = null; uploadKey = null; update('portfolio'); return true; }
     if (button.dataset.removeEntry) {
-      if (removing) return true;
+      if (removing || portfolioLoading) return true;
       removing = button.dataset.removeEntry;
       button.disabled = true;
       const entryId = removing;
@@ -177,7 +180,7 @@ export function createStudio({ getCourse, escape, icon, blocks, render, updateTu
     const form = event.target;
     if (form.id === 'portfolio-form') {
       event.preventDefault();
-      if (sending || entries === null) return true;
+      if (sending || portfolioLoading || entries === null) return true;
       const data = new FormData(form);
       const newFile = data.get('file');
       if (newFile?.size) selectedFile = newFile;
