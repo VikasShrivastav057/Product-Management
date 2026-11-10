@@ -1,0 +1,57 @@
+.studio-header { margin-bottom: clamp(24px, 4vw, 40px); }
+.studio-header h1 { margin: 6px 0 10px; }
+.studio-header p { max-width: 65ch; color: var(--muted); }
+.case-grid .module-card { min-height: 190px; }
+.case-grid .module-footer { margin-top: auto; padding-top: 12px; }
+.studio-back { display: flex; width: fit-content; margin-bottom: 22px; }
+.case-intro { margin: 14px 0 24px; color: var(--muted); font-size: 1.08rem; }
+.studio-side { display: flex; flex-direction: column; gap: 13px; }
+.studio-side .btn, .studio-side .text-link { align-self: flex-start; }
+.worked-solution { margin-top: 28px; padding: 16px 20px; border: 1px solid var(--line); border-radius: 14px; background: var(--teal-soft); }
+.worked-solution summary { cursor: pointer; font-weight: 750; color: var(--teal); }
+.worked-solution[open] summary { margin-bottom: 17px; }
+.studio-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 20px; }
+.studio-panel { min-width: 0; padding: clamp(16px, 3vw, 28px); border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow); }
+.studio-panel > h2 { margin-bottom: 7px; font-size: 1.9rem; }
+.studio-form { display: grid; gap: 14px; margin-top: 18px; }
+.studio-form .field { display: grid; gap: 5px; margin: 0; font-weight: 700; }
+.studio-form input, .studio-form select, .studio-form textarea { width: 100%; min-width: 0; border: 1px solid #b5c8bd; border-radius: 8px; padding: 10px; color: var(--ink); background: var(--white); font-weight: 400; }
+.studio-form input[type=file] { padding: 7px; font-size: .92rem; }
+.studio-form input[type=file]::file-selector-button { margin-right: 8px; padding: 5px 8px; border: 0; border-radius: 5px; background: var(--teal-soft); color: var(--teal); cursor: pointer; font: inherit; }
+.studio-form textarea { resize: vertical; }
+.studio-form small { font-size: .82rem; font-weight: 400; }
+.studio-form > .btn { justify-self: start; }
+.portfolio-entry, .portfolio-empty { margin-top: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--paper); }
+.portfolio-entry h3 { margin: 4px 0 7px; overflow-wrap: anywhere; }
+.portfolio-links { display: flex; flex-wrap: wrap; gap: 5px 16px; overflow-wrap: anywhere; }
+.portfolio-entry .eyebrow { font-size: .66rem; }
+.remove-entry { margin-top: 12px; font-size: .85rem; }
+.remove-entry summary { color: var(--muted); cursor: pointer; }
+.remove-entry p { margin-top: 6px; }
+.remove-entry .btn { margin-top: 6px; color: var(--error); }
+.studio-error { margin: 12px 0; color: var(--error); }
+.tutor-panel { max-width: 820px; }
+.tutor-top, .tutor-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.tutor-top h2 { font-size: clamp(1.4rem, 3vw, 2rem); }
+.prompt-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.prompt-chips .btn { min-height: 40px; text-align: left; }
+.tutor-transcript { display: grid; gap: 12px; margin-top: 16px; }
+.tutor-turn { min-width: 0; padding: 14px; border-radius: 10px; border: 1px solid var(--line); overflow-wrap: anywhere; }
+.tutor-question { margin-bottom: 10px; padding: 9px 11px; border-radius: 7px; background: var(--teal-soft); color: var(--ink); font-weight: 750; }
+.tutor-answer { white-space: pre-wrap; }
+.tutor-sources { margin-top: 12px; font-size: .9rem; }
+.tutor-sources ol { margin: 6px 0 0; padding-left: 20px; }
+.tutor-sources li + li { margin-top: 8px; }
+.tutor-sources small { display: block; color: var(--muted); }
+.tutor-sources p { margin-top: 3px; }
+.lesson-code { margin: 16px 0; overflow: hidden; border: 1px solid #3a5c53; border-radius: 11px; background: var(--deep); color: #f1f8f2; }
+.code-bar { display: flex; align-items: center; justify-content: space-between; padding: 4px 10px; border-bottom: 1px solid #3a5c53; }
+.code-bar span { font-size: .72rem; font-weight: 800; letter-spacing: .14em; }
+.code-bar .btn { min-height: 30px; padding: 4px 8px; color: var(--lime-bright); }
+.code-bar .btn:hover { color: var(--deep); background: var(--lime-bright); }
+.lesson-code pre { max-width: 100%; margin: 0; padding: 14px; overflow-x: auto; border-radius: 0; background: var(--deep); font-size: .88rem; line-height: 1.55; }
+.lesson-code pre code { background: transparent; color: inherit; padding: 0; font: inherit; }
+
+@media (max-width: 860px) {
+  .studio-columns { grid-template-columns: minmax(0, 1fr); }
+}

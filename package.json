@@ -1,0 +1,9 @@
+{
+  "name": "pm-learning-lab",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": "24.x" },
+  "scripts": { "verify": "node --test scripts/verify-*.mjs" },
+  "dependencies": { "@vercel/blob": "^2.6.0", "express": "^5.1.0" }
+}

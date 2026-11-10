@@ -13,4 +13,3 @@ Configure these values as Vercel environment variables.
 - `OPENAI_API_KEY` enables generated tutor responses. Course-based answers are available before it is configured.
 
 Run `npm ci` and `npm run verify` to check the server, grading, portfolio, and tutor behavior.
-
