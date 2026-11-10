@@ -1,5 +1,6 @@
 import { downloadCertificate } from './certificate.js';
 import { createStudio } from './course-studio.js';
+import { createModulePractice } from './module-practice.js';
 
 const root = document.querySelector('#learning-root');
 const studyChat = document.querySelector('#study-chat');
@@ -46,6 +47,7 @@ const inline = (text) => escape(text).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</s
 const two = (number) => String(number).padStart(2, '0');
 const lessonId = (mod, index) => `${mod}-${index}`;
 const lessonHref = (mod, index) => `#lesson/${mod}/${index}`;
+const practiceHref = (mod) => `#practice/${mod}`;
 
 function getLocal(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
@@ -158,10 +160,14 @@ function blocks(lesson) {
 function lessonView(mod, index) {
   const lesson = mod.lessons[index];
   const key = lessonId(mod.id, index);
-  const next = mod.lessons[index + 1] ? lessonHref(mod.id, index + 1) : mod.id < course.modules.length ? lessonHref(mod.id + 1, 0) : '#assessment';
+  const lastLesson = index === mod.lessons.length - 1;
+  const next = lastLesson ? practiceHref(mod.id) : lessonHref(mod.id, index + 1);
+  const label = lastLesson
+    ? (complete.has(key) ? 'Open practice quiz' : 'Complete & take quiz')
+    : (complete.has(key) ? 'Continue' : 'Complete & continue');
   return `<div class="lesson-layout"><article class="lesson-body"><span class="eyebrow">MODULE ${two(mod.id)} · LESSON ${index + 1} OF ${mod.lessons.length}</span><h1>${escape(lesson.title)}</h1><div class="lesson-chat-entry"><button class="btn secondary" type="button" data-study-chat-open>Ask about this lesson ${icon('spark')}</button></div><div class="prose">${blocks(lesson)}</div>
-    <div class="lesson-nav"><a class="btn quiet" href="${index > 0 ? lessonHref(mod.id, index - 1) : '#modules'}">${index > 0 ? 'Previous lesson' : 'Course library'}</a><button class="btn quiet" type="button" data-study-chat-open>Ask about this lesson ${icon('spark')}</button><button class="btn primary" type="button" data-complete="${key}" data-next="${next}">${complete.has(key) ? 'Continue' : 'Complete & continue'} ${icon('arrow')}</button></div></article>
-    <aside class="lesson-outline"><span class="eyebrow">MODULE ${two(mod.id)}</span><h2>${escape(mod.title)}</h2><ol>${mod.lessons.map((item, i) => `<li><a href="${lessonHref(mod.id, i)}"${i === index ? ' aria-current="page" class="active"' : ''}>${complete.has(lessonId(mod.id, i)) ? icon('check') : `<span class="lesson-number">${two(i + 1)}</span>`}<span>${escape(item.title)}</span></a></li>`).join('')}</ol></aside></div>`;
+    <div class="lesson-nav"><a class="btn quiet" href="${index > 0 ? lessonHref(mod.id, index - 1) : '#modules'}">${index > 0 ? 'Previous lesson' : 'Course library'}</a><button class="btn quiet" type="button" data-study-chat-open>Ask about this lesson ${icon('spark')}</button><button class="btn primary" type="button" data-complete="${key}" data-next="${next}">${label} ${icon('arrow')}</button></div></article>
+    <aside class="lesson-outline"><span class="eyebrow">MODULE ${two(mod.id)}</span><h2>${escape(mod.title)}</h2><ol>${mod.lessons.map((item, i) => `<li><a href="${lessonHref(mod.id, i)}"${i === index ? ' aria-current="page" class="active"' : ''}>${complete.has(lessonId(mod.id, i)) ? icon('check') : `<span class="lesson-number">${two(i + 1)}</span>`}<span>${escape(item.title)}</span></a></li>`).join('')}</ol><a class="module-practice-link" href="${practiceHref(mod.id)}">${icon('exam')}<span>Practice quiz · 5 questions</span></a></aside></div>`;
 }
 
 function sessionMessage() {
@@ -260,11 +266,17 @@ function toggleStudyChat(open, trigger) {
   else (chatTrigger?.isConnected ? chatTrigger : chatLauncher).focus({ preventScroll: true });
 }
 
+function currentPracticeModule() {
+  const [, id] = /^#practice\/(\d+)$/.exec(location.hash) ?? [];
+  return course?.modules.find((module) => module.id === Number(id));
+}
+
 function render(moveFocus = false) {
   if (!course) return;
   const [page, modId, index] = (location.hash.slice(1) || 'home').split('/');
   const mod = course.modules.find((item) => item.id === Number(modId));
   if (page === 'lesson' && mod?.lessons[Number(index)]) root.innerHTML = shell('modules', `Module ${two(mod.id)}`, lessonView(mod, Number(index)));
+  else if (page === 'practice' && currentPracticeModule()) root.innerHTML = shell('modules', `Module ${two(mod.id)} practice quiz`, practice.view(mod));
   else if (page === 'modules') root.innerHTML = shell('modules', 'Course library', `<h1>Course library</h1>${library(true)}`);
   else if (page === 'assessment') root.innerHTML = shell('assessment', 'Final assessment', assessment());
   else if (page === 'certificate') root.innerHTML = shell('certificate', 'Certificate', certificate());
@@ -290,6 +302,16 @@ async function action(fn) {
 }
 
 const studio = createStudio({ getCourse: () => course, escape, icon, blocks, render, updateTutorSurface });
+const practice = createModulePractice({
+  currentModule: currentPracticeModule,
+  reviewHref: (mod) => lessonHref(mod.id, 0),
+  continueHref: (mod) => {
+    const next = course.modules[course.modules.indexOf(mod) + 1];
+    return next ? lessonHref(next.id, 0) : '#assessment';
+  },
+  getLocal, setLocal, render, inline, icon,
+  focus: () => root.querySelector('[data-practice-focus]')?.focus(),
+});
 studyChat.innerHTML = `<button class="study-chat-launcher btn primary" type="button" data-study-chat-toggle aria-controls="study-chat-panel" aria-expanded="false">${icon('spark')}<span>Course chat</span></button>
   <aside id="study-chat-panel" class="study-chat-panel" role="dialog" aria-labelledby="study-chat-title" hidden><header class="study-chat-head"><div class="study-chat-title"><span class="module-icon">${icon('spark')}</span><div><strong id="study-chat-title">Course chat</strong><small id="study-chat-context"></small></div></div><button type="button" class="study-chat-close" aria-label="Close course chat" data-study-chat-close>×</button></header><div class="study-chat-content"></div></aside>`;
 const chatLauncher = studyChat.querySelector('.study-chat-launcher');
@@ -333,6 +355,7 @@ root.addEventListener('click', (event) => {
     return;
   }
   if (studio.click(button)) return;
+  if (practice.click(button)) return;
   if (button.hasAttribute('data-copy-code')) {
     const code = button.closest('.lesson-code').querySelector('code');
     void navigator.clipboard?.writeText(code.textContent).then(() => { button.textContent = 'Copied'; }, () => {
@@ -385,13 +408,21 @@ root.addEventListener('input', studio.input);
 
 root.addEventListener('submit', (event) => {
   if (studio.submit(event)) return;
+  if (practice.submit(event)) return;
   if (event.target.id !== 'certificate-form') return;
   event.preventDefault();
   const name = new FormData(event.target).get('learnerName');
   action(async () => { server.certificate = await api('/certificate', { name }); });
 });
 
-window.addEventListener('hashchange', () => { notice = ''; render(true); if (course) studio.enter(); });
+window.addEventListener('hashchange', () => {
+  notice = '';
+  render(true);
+  if (course) {
+    studio.enter();
+    void practice.enter();
+  }
+});
 
 async function boot() {
   try {
@@ -400,6 +431,7 @@ async function boot() {
     course = await response.json();
     render();
     studio.enter();
+    void practice.enter();
     await refreshServer();
     if (/^#(?:assessment|certificate)(?:$|\/)/.test(location.hash)) render();
   } catch (error) {
