@@ -130,3 +130,21 @@ test('generates a grounded reply with a bounded model request and a 20-question 
     assert.equal(degraded.answer, `“${degraded.sources[0].excerpts[0]}” [1]`);
   } finally { sqlite.close(); }
 });
+
+test('returns course excerpts if the AI usage counter is unavailable', async () => {
+  const env = {
+    OPENAI_API_KEY: 'fixture-only',
+    DB: { prepare: () => ({ bind: () => ({ first: async () => { throw new Error('Fixture storage outage'); } }) }) },
+  };
+  let modelCalls = 0;
+  const response = await handleTutor(ask(), env, index, () => {
+    modelCalls++;
+    return new Response(null, { status: 503 });
+  });
+  assert.equal(response.status, 200);
+  const reply = await response.json();
+  assert.equal(reply.mode, 'search');
+  assert.match(reply.note, /AI tutor is temporarily unavailable/);
+  assert.equal(reply.answer, `“${reply.sources[0].excerpts[0]}” [1]`);
+  assert.equal(modelCalls, 0);
+});

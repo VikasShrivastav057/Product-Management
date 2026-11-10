@@ -251,9 +251,15 @@ function renderStudyChat({ focus = false, latest = false } = {}) {
 
 function updateTutorSurface(options) {
   if (location.hash === '#tutor' || location.hash.startsWith('#tutor/')) {
+    const active = document.activeElement;
+    const selection = active?.matches('#tutor-form textarea') ? [active.selectionStart, active.selectionEnd] : null;
     render();
     if (options?.latest) root.querySelector('.tutor-turn:last-child')?.scrollIntoView({ block: 'nearest' });
-    if (options?.focus) root.querySelector('#tutor-form textarea')?.focus({ preventScroll: true });
+    if (options?.focus || selection) {
+      const field = root.querySelector('#tutor-form textarea');
+      field?.focus({ preventScroll: true });
+      if (selection && !options?.focus) field?.setSelectionRange(...selection);
+    }
   } else if (chatOpen) renderStudyChat(options);
 }
 
@@ -358,13 +364,17 @@ root.addEventListener('click', (event) => {
   if (practice.click(button)) return;
   if (button.hasAttribute('data-copy-code')) {
     const code = button.closest('.lesson-code').querySelector('code');
-    void navigator.clipboard?.writeText(code.textContent).then(() => { button.textContent = 'Copied'; }, () => {
+    const selectCode = () => {
       const range = document.createRange();
       range.selectNodeContents(code);
-      window.getSelection()?.removeAllRanges();
-      window.getSelection()?.addRange(range);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
       button.textContent = 'SQL selected';
-    });
+    };
+    if (navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(code.textContent).then(() => { button.textContent = 'Copied'; }, selectCode);
+    } else selectCode();
     return;
   }
   if (button.dataset.complete) {

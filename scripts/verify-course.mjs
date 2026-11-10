@@ -87,6 +87,23 @@ test('starting returns one public question per module and resumes the open attem
   assert.deepEqual(state.value, { attempt: start.value, result: null, eligible: false, certificate: null });
 });
 
+test('simultaneous starts share one attempt, including after a completed attempt', async (context) => {
+  const { call, database } = fixture(context);
+  const startPair = () => Promise.all([call('/start'), call('/start')]);
+  const [first, duplicate] = await startPair();
+  assert.equal(first.status, 200);
+  assert.deepEqual(duplicate, first);
+  assert.equal(database.prepare('SELECT COUNT(*) AS count FROM attempts').get().count, 1);
+  assert.equal((await call('/submit', { body: submission(first.value, 7) })).value.passed, false);
+
+  const [retry, duplicateRetry] = await startPair();
+  assert.equal(retry.status, 200);
+  assert.notEqual(retry.value.id, first.value.id);
+  assert.deepEqual(duplicateRetry, retry);
+  assert.equal(database.prepare('SELECT COUNT(*) AS count FROM attempts').get().count, 2);
+  assert.deepEqual((await call('', { method: 'GET' })).value.attempt, retry.value);
+});
+
 test('7/10 is blocked and exactly 8/10 qualifies for one certificate', async (context) => {
   const { call, database } = fixture(context);
   const first = (await call('/start')).value;
