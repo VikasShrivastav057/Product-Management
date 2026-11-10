@@ -1804,6 +1804,152 @@
         "answerIndex": 3,
         "explanation": "The stock feed is a dependency because the upgrade needs accurate availability to work. Fixing and testing it first protects customers from seeing items they cannot buy."
       }
+    ],
+    "guesstimates": [
+      {
+        "id": 1,
+        "prompt": "A grocery delivery pilot serves 12,000 households. Assume 25% use the app and each of those households places two orders per week. Using seven days in a week, about how many orders should the team expect per day on average?",
+        "choices": [
+          "430 orders per day",
+          "860 orders per day",
+          "1,710 orders per day",
+          "6,000 orders per day"
+        ],
+        "answerIndex": 1,
+        "explanation": "Estimate the active households first. 12,000 × 25% = 3,000 households. At two orders each, they place 3,000 × 2 = 6,000 orders per week. Divide by seven days to get about 857 orders per day, which rounds to 860."
+      },
+      {
+        "id": 2,
+        "prompt": "A budgeting app has 20,000 registered customers. Customers must finish setup before they can log an expense, and 60% have finished. Last month, 75% of the customers who finished setup logged at least one expense. The team counts customers as active when they log an expense. How many customers were active last month?",
+        "choices": [
+          "9,000 customers",
+          "12,000 customers",
+          "15,000 customers",
+          "18,000 customers"
+        ],
+        "answerIndex": 0,
+        "explanation": "Start with 20,000 × 60% = 12,000 customers who finished setup. The 75% applies to that smaller group, so 12,000 × 75% = 9,000 customers who logged an expense last month."
+      },
+      {
+        "id": 3,
+        "prompt": "Eight support agents each have five hours available for tickets today. A ticket takes 12 minutes on average. If there are enough tickets to fill the available time, how many can the team expect to handle today?",
+        "choices": [
+          "25 tickets",
+          "40 tickets",
+          "200 tickets",
+          "240 tickets"
+        ],
+        "answerIndex": 2,
+        "explanation": "Five hours is 5 × 60 = 300 minutes of ticket time per agent. One agent can handle about 300 ÷ 12 = 25 tickets. Across eight agents, the team can handle 8 × 25 = 200 tickets."
+      },
+      {
+        "id": 4,
+        "prompt": "An online shop has 50,000 visitors in a week. Assume 8% add an item to their cart and 40% of those visitors complete a purchase. Each purchasing visitor places one order. About how many orders does the shop receive that week?",
+        "choices": [
+          "2,400 orders",
+          "4,000 orders",
+          "20,000 orders",
+          "1,600 orders"
+        ],
+        "answerIndex": 3,
+        "explanation": "First find the visitors who add an item to their cart. 50,000 × 8% = 4,000 visitors. Then apply the purchase rate to those visitors. 4,000 × 40% = 1,600 weekly orders."
+      },
+      {
+        "id": 5,
+        "prompt": "A training software company identifies 300 local businesses. Assume 40% need this kind of product, and each of those businesses would pay for 25 users at $8 per user per month. What is the estimated annual revenue if every business that needs the product subscribes for all 12 months?",
+        "choices": [
+          "$24,000 per year",
+          "$288,000 per year",
+          "$360,000 per year",
+          "$720,000 per year"
+        ],
+        "answerIndex": 1,
+        "explanation": "The estimated market has 300 × 40% = 120 businesses. Together they would pay for 120 × 25 = 3,000 users. At $8 each, that is $24,000 per month. Over 12 months, $24,000 × 12 = $288,000 per year."
+      },
+      {
+        "id": 6,
+        "prompt": "A course app delivers 600 video downloads per day. Each download is 250 MB. Over a 30-day month, about how much data does the app deliver? Use 1,000 MB per GB and 1,000 GB per TB.",
+        "choices": [
+          "4.5 TB per month",
+          "0.15 TB per month",
+          "45 TB per month",
+          "4,500 TB per month"
+        ],
+        "answerIndex": 0,
+        "explanation": "The app delivers 600 × 250 = 150,000 MB per day. Over 30 days, that is 4,500,000 MB. Divide by 1,000 to get 4,500 GB, then divide by 1,000 again to get 4.5 TB."
+      },
+      {
+        "id": 7,
+        "prompt": "A scheduling product starts in 25 districts. Assume each district has 16 clinics and 30% meet the product’s eligibility rules. If every eligible clinic paid $75 per month, what is the estimated monthly revenue opportunity?",
+        "choices": [
+          "$3,000 per month",
+          "$9,000 per month",
+          "$30,000 per month",
+          "$108,000 per month"
+        ],
+        "answerIndex": 1,
+        "explanation": "Start with 25 × 16 = 400 clinics. Apply the eligibility rate to get 400 × 30% = 120 clinics. At $75 per clinic per month, the opportunity is 120 × $75 = $9,000 per month. This estimate assumes all eligible clinics subscribe."
+      },
+      {
+        "id": 8,
+        "prompt": "Assume a marketplace has 12,000 active sellers. In a typical month, between 2% and 4% of them need onboarding help once. Each help session takes 15 minutes. What range of staff time should the team plan for per month?",
+        "choices": [
+          "30–60 hours",
+          "120–240 hours",
+          "60–120 hours",
+          "240–480 hours"
+        ],
+        "answerIndex": 2,
+        "explanation": "At 2%, 12,000 × 2% = 240 sellers need help. At 4%, the number doubles to 480 sellers. Each session takes 15 ÷ 60 = 0.25 hours, so the two scenarios require 240 × 0.25 = 60 hours and 480 × 0.25 = 120 hours."
+      },
+      {
+        "id": 9,
+        "prompt": "Assume a team must review 440 listings every workday, with each listing taking 7 minutes. Each reviewer has 5.5 hours a day available for reviews. What is the smallest whole number of reviewers who can clear the daily queue?",
+        "choices": [
+          "7 reviewers",
+          "8 reviewers",
+          "9 reviewers",
+          "10 reviewers"
+        ],
+        "answerIndex": 3,
+        "explanation": "The queue takes 440 × 7 = 3,080 minutes of review work. Each reviewer has 5.5 × 60 = 330 minutes available. Dividing 3,080 by 330 gives about 9.3 reviewer-days. Round up to 10 reviewers so the team has enough time to finish."
+      },
+      {
+        "id": 10,
+        "prompt": "Assume an event has two independent check-in kiosks. Each can check in one person every 45 seconds. One kiosk runs for 90 minutes, and the other runs for the first 30 minutes. With people waiting throughout, how many check-ins can they complete in total?",
+        "choices": [
+          "160 check-ins",
+          "80 check-ins",
+          "120 check-ins",
+          "240 check-ins"
+        ],
+        "answerIndex": 0,
+        "explanation": "Add the two operating times to get 90 + 30 = 120 minutes of kiosk time. Convert this to 120 × 60 = 7,200 seconds of kiosk time. Dividing by 45 seconds per check-in gives 160 check-ins."
+      },
+      {
+        "id": 11,
+        "prompt": "Assume a subscription product averages 1,200 paying accounts each month for a 12-month year. Of those accounts, 75% pay $12 per month and 25% pay $28 per month. Ignoring discounts and taxes, what is the estimated annual subscription revenue?",
+        "choices": [
+          "$19,200 per year",
+          "$172,800 per year",
+          "$230,400 per year",
+          "$403,200 per year"
+        ],
+        "answerIndex": 2,
+        "explanation": "The base plan has 1,200 × 75% = 900 accounts that generate 900 × $12 = $10,800 per month. The premium plan has 300 accounts that generate 300 × $28 = $8,400 per month. Add the two amounts and multiply by 12 months to get $19,200 × 12 = $230,400 per year."
+      },
+      {
+        "id": 12,
+        "prompt": "A campaign will reach 4,200 newsletter subscribers and 2,800 past webinar attendees. Assume 900 people appear in both groups and 20% of the unique people reached will book one demo each. How many demos should the team estimate?",
+        "choices": [
+          "1,220 demos",
+          "1,400 demos",
+          "1,580 demos",
+          "6,100 demos"
+        ],
+        "answerIndex": 0,
+        "explanation": "The two lists add up to 4,200 + 2,800 = 7,000 entries. Subtract the 900 people who were counted twice to get 6,100 unique people. Multiply 6,100 × 20% to estimate 1,220 demos."
+      }
     ]
   },
   {

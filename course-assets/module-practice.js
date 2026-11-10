@@ -1,4 +1,5 @@
 const QUIZ_LENGTH = 5;
+export const GUESSTIMATE_PRACTICE_ID = 'guesstimates';
 
 function isQuestion(question) {
   return Number.isInteger(question?.id) && question.id > 0 &&
@@ -8,6 +9,15 @@ function isQuestion(question) {
     question.choices.every((choice) => typeof choice === 'string' && choice.trim()) &&
     new Set(question.choices).size === 4 && Number.isInteger(question.answerIndex) &&
     question.answerIndex >= 0 && question.answerIndex < question.choices.length;
+}
+
+function questionPool(questions) {
+  if (!Array.isArray(questions) || questions.length < 2 * QUIZ_LENGTH || !questions.every(isQuestion)) {
+    throw new Error('Invalid quiz data');
+  }
+  const pool = new Map(questions.map((question) => [question.id, question]));
+  if (pool.size !== questions.length) throw new Error('Duplicate practice question IDs');
+  return pool;
 }
 
 function restoreAttempt(saved, pool) {
@@ -70,12 +80,13 @@ export function createModulePractice({ currentModule, reviewHref, continueHref, 
       for (const quiz of quizzes) {
         if (!Number.isInteger(quiz?.module) || pools.has(quiz.module) ||
           !Array.isArray(quiz.questions) || quiz.questions.length !== QUIZ_LENGTH ||
-          !Array.isArray(quiz.alternates) || quiz.alternates.length < QUIZ_LENGTH) throw new Error('Invalid quiz data');
-        const questions = [...quiz.questions, ...quiz.alternates];
-        if (!questions.every(isQuestion)) throw new Error('Invalid quiz data');
-        const pool = new Map(questions.map((question) => [question.id, question]));
-        if (pool.size !== questions.length) throw new Error('Duplicate practice question IDs');
-        pools.set(quiz.module, pool);
+          !Array.isArray(quiz.alternates)) throw new Error('Invalid quiz data');
+        pools.set(quiz.module, questionPool([...quiz.questions, ...quiz.alternates]));
+        const estimates = quiz[GUESSTIMATE_PRACTICE_ID];
+        if (estimates !== undefined) {
+          if (pools.has(GUESSTIMATE_PRACTICE_ID)) throw new Error('Duplicate guesstimate quiz');
+          pools.set(GUESSTIMATE_PRACTICE_ID, questionPool(estimates));
+        }
       }
       bank = pools;
     } catch {
@@ -91,11 +102,13 @@ export function createModulePractice({ currentModule, reviewHref, continueHref, 
   }
 
   function view(module) {
-    const header = `<div class="section-head"><div><span class="eyebrow">MODULE ${String(module.id).padStart(2, '0')} · PRACTICE QUIZ</span><h1>${inline(module.title)}</h1></div></div>`;
+    const heading = module.eyebrow ?? `MODULE ${String(module.id).padStart(2, '0')} · PRACTICE QUIZ`;
+    const header = `<div class="section-head"><div><span class="eyebrow">${inline(heading)}</span><h1>${inline(module.title)}</h1></div></div>`;
+    const reviewLink = `<a class="btn quiet" href="${reviewHref(module)}">${inline(module.reviewLabel ?? 'Review module')}</a>`;
     const wrap = (body) => `<section class="assessment">${header}${body}</section>`;
     const pool = bank?.get(module.id);
     if (!pool) {
-      if (loadError || bank) return wrap(`<div class="notice"><p>The practice quiz is temporarily unavailable.</p>${loadError ? '<button type="button" class="btn secondary" data-practice-action="retry-load">Try again</button>' : ''}<a class="btn quiet" href="${reviewHref(module)}">Review module</a></div>`);
+      if (loadError || bank) return wrap(`<div class="notice"><p>The practice quiz is temporarily unavailable.</p>${loadError ? '<button type="button" class="btn secondary" data-practice-action="retry-load">Try again</button>' : ''}${reviewLink}</div>`);
       return wrap('<div class="notice" role="status">Loading your practice quiz…</div>');
     }
 
@@ -105,8 +118,9 @@ export function createModulePractice({ currentModule, reviewHref, continueHref, 
       const missed = questions.map((question, index) => ({ question, index })).filter(({ question, index }) => answers[index] !== question.answerIndex);
       const review = missed.length ? `<div class="review-list"><h2>Review missed questions</h2>${missed.map(({ question, index }) => `<details class="notice"><summary>${index + 1}. Incorrect · ${inline(question.prompt)}</summary>${explain(question, answers[index])}</details>`).join('')}</div>` : '';
       const next = continueHref(module);
+      const nextLabel = module.continueLabel ?? (next === '#assessment' ? 'Go to final assessment' : 'Continue to next module');
       return wrap(`<div class="result-panel"><span class="eyebrow">PRACTICE COMPLETE</span><h2 tabindex="-1" data-practice-focus>${QUIZ_LENGTH - missed.length} of ${QUIZ_LENGTH} correct</h2>
-        <p>Your next set will have five different questions.</p><div class="assessment-actions"><a class="btn primary" href="${next}">${next === '#assessment' ? 'Go to final assessment' : 'Continue to next module'} ${icon('arrow')}</a><button class="btn secondary" type="button" data-practice-action="restart">Try a new set</button><a class="btn quiet" href="${reviewHref(module)}">Review module</a></div></div>${review}`);
+        <p>Your next set will have five different questions.</p><div class="assessment-actions"><a class="btn primary" href="${next}">${inline(nextLabel)} ${icon('arrow')}</a><button class="btn secondary" type="button" data-practice-action="restart">Try a new set</button>${reviewLink}</div></div>${review}`);
     }
 
     const question = questions[step];
@@ -115,11 +129,11 @@ export function createModulePractice({ currentModule, reviewHref, continueHref, 
     const correct = selected === question.answerIndex;
     const feedback = answered ? `<div class="notice practice-feedback ${correct ? 'correct' : 'incorrect'}" role="status" tabindex="-1" data-practice-focus><strong class="practice-verdict">${correct ? 'Your answer was correct.' : 'Your answer was incorrect.'}</strong>${explain(question, selected)}</div>` : '';
     const choices = question.choices.map((choice, index) => `<label class="option"><input type="radio" name="practice-answer" value="${index}" required${index === selected ? ' checked' : ''}><span>${inline(choice)}</span></label>`).join('');
-    return wrap(`<p class="muted">Practice what you learned and get feedback after each answer. Your score is for practice.</p>
+    return wrap(`<p class="muted">${inline(module.intro ?? 'Practice what you learned and get feedback after each answer. Your score is for practice.')}</p>
       <form class="question-card" id="module-practice-form"><div class="section-head"><span class="eyebrow">QUESTION ${step + 1} OF ${QUIZ_LENGTH}</span><span class="pill">${answers.length}/${QUIZ_LENGTH} ANSWERED</span></div>
         <div class="progress-track" aria-hidden="true"><span style="width:${answers.length * 100 / QUIZ_LENGTH}%"></span></div>
         <fieldset${answered ? ' disabled' : ''}><legend tabindex="-1"${answered ? '' : ' data-practice-focus'}>${inline(question.prompt)}</legend><div class="options">${choices}</div></fieldset>
-        ${feedback}<div class="assessment-actions">${answered ? `<button class="btn primary" type="button" data-practice-action="next">${step + 1 === QUIZ_LENGTH ? 'See results' : 'Next question'} ${icon('arrow')}</button>` : '<button class="btn primary" type="submit">Check answer</button>'}<a class="btn quiet" href="${reviewHref(module)}">Review module</a></div>
+        ${feedback}<div class="assessment-actions">${answered ? `<button class="btn primary" type="button" data-practice-action="next">${step + 1 === QUIZ_LENGTH ? 'See results' : 'Next question'} ${icon('arrow')}</button>` : '<button class="btn primary" type="submit">Check answer</button>'}${reviewLink}</div>
       </form>`);
   }
 

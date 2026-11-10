@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
-import { createModulePractice } from '../course-assets/module-practice.js';
+import { createModulePractice, GUESSTIMATE_PRACTICE_ID } from '../course-assets/module-practice.js';
 import { createCourseHandler } from '../lib/course-server.mjs';
 
 const course = JSON.parse(await readFile(new URL('../course-assets/course-content.json', import.meta.url), 'utf8'));
 const quizzes = JSON.parse(await readFile(new URL('../course-assets/module-practice.json', import.meta.url), 'utf8'));
+const estimateQuestions = quizzes.find(({ module }) => module === 13)[GUESSTIMATE_PRACTICE_ID];
 
 test('every module has five original questions and six distinct alternates', async () => {
   const handle = createCourseHandler({});
@@ -18,11 +19,15 @@ test('every module has five original questions and six distinct alternates', asy
   assert.equal((await get('/data/exam-bank.json')).status, 404);
 
   assert.deepEqual(quizzes.map(({ module }) => module), course.modules.map(({ id }) => id));
-  const prompts = new Set();
+  const pools = [estimateQuestions];
+  assert.equal(estimateQuestions.length, 12);
   for (const { questions, alternates } of quizzes) {
     assert.equal(questions.length, 5);
     assert.equal(alternates.length, 6);
-    const pool = [...questions, ...alternates];
+    pools.push([...questions, ...alternates]);
+  }
+  const prompts = new Set();
+  for (const pool of pools) {
     assert.equal(new Set(pool.map(({ id }) => id)).size, pool.length);
     for (const { id, prompt, choices, answerIndex, explanation } of pool) {
       assert.ok(Number.isInteger(id) && id > 0);
@@ -42,8 +47,11 @@ function createFixture(context, storage = new Map()) {
   let module = course.modules[0];
   const options = {
     currentModule: () => module,
-    reviewHref: ({ id }) => `#lesson/${id}/0`,
-    continueHref: ({ id }) => id === course.modules.at(-1).id ? '#assessment' : `#lesson/${id + 1}/0`,
+    reviewHref: ({ id }) => id === GUESSTIMATE_PRACTICE_ID ? '#lesson/13/4' : `#lesson/${id}/0`,
+    continueHref: ({ id }) => {
+      if (id === GUESSTIMATE_PRACTICE_ID) return '#modules';
+      return id === course.modules.at(-1).id ? '#assessment' : `#lesson/${id + 1}/0`;
+    },
     getLocal: (key, fallback) => storage.get(key) ?? fallback,
     setLocal: (key, value) => storage.set(key, value),
     render: () => {},
@@ -61,8 +69,9 @@ function createFixture(context, storage = new Map()) {
   const attempt = () => storage.get(`pm-learning-lab:practice:v2:${module.id}`);
   const question = () => {
     const { questionIds, step } = attempt();
-    const { questions, alternates } = quizzes.find((quiz) => quiz.module === module.id);
-    return [...questions, ...alternates].find(({ id }) => id === questionIds[step]);
+    const quiz = quizzes.find(({ module: id }) => id === module.id);
+    const pool = quiz ? [...quiz.questions, ...quiz.alternates] : estimateQuestions;
+    return pool.find(({ id }) => id === questionIds[step]);
   };
   async function reload() {
     practice = createModulePractice(options);
@@ -146,4 +155,39 @@ test('an existing five-question attempt keeps its answers and question order', a
   assert.deepEqual(attempt().questionIds, quizzes[0].questions.map(({ id }) => id));
   click('next');
   assert.ok(view().includes(third.prompt));
+});
+
+test('guesstimate practice has independent progress, worked answers, and a new question set', async (context) => {
+  const { submit, click, view, attempt, question, reload, selectModule } = createFixture(context);
+  const strategyModule = course.modules.find(({ id }) => id === 13);
+  selectModule(strategyModule);
+  await reload();
+  assert.ok(view().includes('QUESTION 1 OF 5'));
+  submit(question().answerIndex);
+  const savedModuleAttempt = attempt();
+
+  selectModule({
+    id: GUESSTIMATE_PRACTICE_ID,
+    title: 'Guesstimate practice',
+    reviewLabel: 'Review opportunity sizing',
+    continueLabel: 'Back to course library',
+  });
+  assert.ok(view().includes('Guesstimate practice'));
+  assert.ok(view().includes('Review opportunity sizing'));
+  const ids = attempt().questionIds;
+  for (let i = 0; i < 5; i++) {
+    const current = question();
+    assert.ok(view().includes(current.prompt));
+    submit(i === 0 ? (current.answerIndex + 1) % current.choices.length : current.answerIndex);
+    assert.ok(view().includes(i === 0 ? 'Your answer was incorrect.' : 'Your answer was correct.'));
+    assert.ok(view().includes(current.explanation));
+    click('next');
+  }
+  assert.ok(view().includes('4 of 5 correct'));
+  assert.ok(view().includes('href="#modules">Back to course library'));
+  click('restart');
+  assert.ok(attempt().questionIds.every((id) => !ids.includes(id)));
+  selectModule(strategyModule);
+  assert.deepEqual(attempt(), savedModuleAttempt);
+  assert.ok(view().includes('Your answer was correct.'));
 });

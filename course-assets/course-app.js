@@ -1,6 +1,6 @@
 import { downloadCertificate } from './certificate.js';
 import { createStudio } from './course-studio.js';
-import { createModulePractice } from './module-practice.js';
+import { createModulePractice, GUESSTIMATE_PRACTICE_ID } from './module-practice.js';
 
 const root = document.querySelector('#learning-root');
 const studyChat = document.querySelector('#study-chat');
@@ -48,6 +48,15 @@ const two = (number) => String(number).padStart(2, '0');
 const lessonId = (mod, index) => `${mod}-${index}`;
 const lessonHref = (mod, index) => `#lesson/${mod}/${index}`;
 const practiceHref = (mod) => `#practice/${mod}`;
+const opportunitySizingLesson = lessonHref(13, 4);
+const guesstimatePractice = {
+  id: GUESSTIMATE_PRACTICE_ID,
+  title: 'Guesstimate practice',
+  eyebrow: 'ESTIMATION · PRACTICE QUIZ',
+  intro: 'Use the assumptions in each question. Break the estimate into parts, keep the units consistent, and round at the end.',
+  reviewLabel: 'Review opportunity sizing',
+  continueLabel: 'Back to course library',
+};
 
 function getLocal(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
@@ -135,6 +144,7 @@ function card(mod) {
 function library(withChat = false) {
   return `<section id="course-library"><div class="section-head"><div><span class="eyebrow">THE CURRICULUM</span><h2>Explore the modules</h2></div><span class="muted">${course.modules.length} modules · ${lessonCount()} lessons</span></div>
     ${withChat ? `<div class="study-chat-entry"><span class="module-icon">${icon('spark')}</span><div><h3>Have a course question?</h3><p>Ask about any module and get an answer with a link to the lesson.</p></div><button type="button" class="btn secondary" data-study-chat-open>Open course chat ${icon('arrow')}</button></div>` : ''}
+    <div class="notice"><strong>Guesstimate practice</strong><p>Estimate demand, market size, revenue, and capacity from a few assumptions. See the calculation after each answer.</p><a class="text-link" href="${practiceHref(guesstimatePractice.id)}">Start guesstimate quiz ${icon('arrow')}</a></div>
     <div class="module-grid">${course.modules.map(card).join('')}</div>
     <div class="notice"><strong>Put the lessons into practice</strong><p>Work through seven case studies and save your own deliverables in your private portfolio.</p><a class="text-link" href="#cases">Explore case studies ${icon('arrow')}</a></div></section>`;
 }
@@ -170,7 +180,8 @@ function lessonView(mod, index) {
     : (complete.has(key) ? 'Continue' : 'Complete & continue');
   const words = lesson.glossary ?? [];
   const glossary = words.length ? `<dl>${words.map(({ term, definition }) => `<dt>${escape(term)}</dt><dd>${inline(definition)}</dd>`).join('')}</dl>` : '';
-  return `<div class="lesson-layout lesson-with-glossary"><article class="lesson-body"><span class="eyebrow">MODULE ${two(mod.id)} · LESSON ${index + 1} OF ${mod.lessons.length}</span><h1>${escape(lesson.title)}</h1><div class="lesson-chat-entry"><button class="btn secondary" type="button" data-study-chat-open>Ask about this lesson ${icon('spark')}</button><a class="btn quiet" href="${practiceHref(mod.id)}">Practice quiz</a></div>
+  const estimates = (mod.id === 9 && index === 1) || lessonHref(mod.id, index) === opportunitySizingLesson;
+  return `<div class="lesson-layout lesson-with-glossary"><article class="lesson-body"><span class="eyebrow">MODULE ${two(mod.id)} · LESSON ${index + 1} OF ${mod.lessons.length}</span><h1>${escape(lesson.title)}</h1><div class="lesson-chat-entry"><button class="btn secondary" type="button" data-study-chat-open>Ask about this lesson ${icon('spark')}</button><a class="btn quiet" href="${practiceHref(mod.id)}">Practice quiz</a>${estimates ? `<a class="btn quiet" href="${practiceHref(guesstimatePractice.id)}">Guesstimate practice</a>` : ''}</div>
     ${glossary ? `<details class="lesson-glossary mobile-glossary"><summary>Words in this lesson <span class="muted">· ${words.length} terms</span></summary>${glossary}</details>` : ''}
     <div class="prose">${blocks(lesson)}</div>
     <div class="lesson-nav"><a class="btn quiet" href="${index > 0 ? lessonHref(mod.id, index - 1) : '#modules'}">${index > 0 ? 'Previous lesson' : 'Course library'}</a><button class="btn quiet" type="button" data-study-chat-open>Ask about this lesson ${icon('spark')}</button><button class="btn primary" type="button" data-complete="${key}" data-next="${next}">${label} ${icon('arrow')}</button></div></article>
@@ -283,6 +294,7 @@ function toggleStudyChat(open, trigger) {
 }
 
 function currentPracticeModule() {
+  if (location.hash === practiceHref(guesstimatePractice.id)) return guesstimatePractice;
   const [, id] = /^#practice\/(\d+)$/.exec(location.hash) ?? [];
   return course?.modules.find((module) => module.id === Number(id));
 }
@@ -291,8 +303,9 @@ function render(moveFocus = false) {
   if (!course) return;
   const [page, modId, index] = (location.hash.slice(1) || 'home').split('/');
   const mod = course.modules.find((item) => item.id === Number(modId));
+  const quiz = page === 'practice' ? currentPracticeModule() : null;
   if (page === 'lesson' && mod?.lessons[Number(index)]) root.innerHTML = shell('modules', `Module ${two(mod.id)}`, lessonView(mod, Number(index)));
-  else if (page === 'practice' && currentPracticeModule()) root.innerHTML = shell('modules', `Module ${two(mod.id)} practice quiz`, practice.view(mod));
+  else if (quiz) root.innerHTML = shell('modules', quiz === guesstimatePractice ? quiz.title : `Module ${two(quiz.id)} practice quiz`, practice.view(quiz));
   else if (page === 'modules') root.innerHTML = shell('modules', 'Course library', `<h1>Course library</h1>${library(true)}`);
   else if (page === 'assessment') root.innerHTML = shell('assessment', 'Final assessment', assessment());
   else if (page === 'certificate') root.innerHTML = shell('certificate', 'Certificate', certificate());
@@ -320,8 +333,9 @@ async function action(fn) {
 const studio = createStudio({ getCourse: () => course, escape, icon, blocks, render, updateTutorSurface });
 const practice = createModulePractice({
   currentModule: currentPracticeModule,
-  reviewHref: (mod) => lessonHref(mod.id, 0),
+  reviewHref: (mod) => mod === guesstimatePractice ? opportunitySizingLesson : lessonHref(mod.id, 0),
   continueHref: (mod) => {
+    if (mod === guesstimatePractice) return '#modules';
     const next = course.modules[course.modules.indexOf(mod) + 1];
     return next ? lessonHref(next.id, 0) : '#assessment';
   },
