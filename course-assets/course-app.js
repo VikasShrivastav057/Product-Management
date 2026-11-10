@@ -191,7 +191,7 @@ function showResult(result) {
   return `<div class="result-panel ${result.passed ? 'passed' : 'failed'}"><span class="eyebrow">ASSESSMENT RESULT</span><h2>${result.percent}% · ${result.passed ? 'Passed' : 'Keep practicing'}</h2>
     <p>${result.correct} of ${result.total} correct. ${result.passed ? 'Your completion certificate is unlocked.' : 'A score of at least 80% unlocks the certificate. Review the explanations and try another set.'}</p>
     <div class="assessment-actions">${server.eligible ? '<a class="btn primary" href="#certificate">Open certificate</a>' : '<button class="btn primary" data-action="start" type="button">Try again</button>'}<a class="btn quiet" href="#modules">Review lessons</a></div></div>
-    <div class="review-list"><h2>Review your answers</h2>${result.review.map((item, index) => `<details class="notice"><summary>${two(index + 1)} · ${item.correct ? 'Correct' : 'Needs review'} · ${escape(item.prompt)}</summary><p><strong>Your answer</strong> ${escape(item.answer)}</p>${item.correct ? '' : `<p><strong>Correct answer</strong> ${escape(item.expected)}</p>`}<p>${escape(item.rationale)}</p></details>`).join('')}</div>`;
+    <div class="review-list"><h2>Review your answers</h2>${result.review.map((item, index) => `<details class="notice"><summary>${two(index + 1)} · ${item.correct ? 'Correct' : 'Incorrect'} · ${escape(item.prompt)}</summary><p><strong>Your answer</strong> ${escape(item.answer)}</p>${item.correct ? '' : `<p><strong>Correct answer</strong> ${escape(item.expected)}</p>`}<p><strong>Why</strong> ${escape(item.rationale)}</p></details>`).join('')}</div>`;
 }
 
 function activeQuestion() {

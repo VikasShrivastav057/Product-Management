@@ -492,6 +492,10 @@ p + p { margin-top: .85em; }
 .notice p + :is(a, button), .notice > .text-link { margin-top: 10px; }
 #course-library > .notice { margin-top: 20px; padding: 17px 18px; }
 .notice.error, .notice[data-kind='error'], .practice-feedback.incorrect { border-color: #f1d7d2; border-left-color: #bd6559; background: #fbefec; color: var(--error); }
+.practice-verdict { display: block; font-size: 1.08rem; }
+.practice-answers { display: grid; gap: 8px; margin: 9px 0; }
+.practice-answers dt { font-weight: 750; }
+.practice-answers dd { margin: 0; }
 .notice.warning, .notice[data-kind='warning'] { border-color: #eee0b7; border-left-color: #ba9254; background: #fbf4e1; color: #6b4a19; }
 .divider { margin-block: 20px; border: 0; border-top: 1px solid var(--line); }
 
