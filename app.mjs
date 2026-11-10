@@ -12,8 +12,8 @@ const handle = createCourseHandler({
   ...storage,
   secure: onVercel,
   examBank: process.env.PM_EXAM_BANK,
-  openAIKey: process.env.OPENAI_API_KEY,
-  tutorModel: process.env.OPENAI_TUTOR_MODEL,
+  groqApiKey: process.env.GROQ_API_KEY,
+  tutorModel: process.env.GROQ_TUTOR_MODEL,
 });
 
 const app = express();

@@ -108,7 +108,7 @@ export function createStudio({ getCourse, escape, icon, blocks, render, updateTu
       ${!turns.length && !asking ? `<div class="prompt-chips">${starterQuestions.map((text) => `<button type="button" class="btn secondary" data-suggest-question="${escape(text)}">${escape(text)}</button>`).join('')}</div>` : ''}
       <form class="studio-form tutor-form" id="tutor-form"><label class="field"><span${embedded ? ' class="sr-only"' : ''}>Your question</span><textarea name="question" rows="${embedded ? 2 : 3}" maxlength="1000" placeholder="Ask a question…" required${asking ? ' disabled' : ''}>${asking ? '' : escape(question)}</textarea></label>
         <div class="tutor-actions"><button class="btn primary" type="submit"${asking ? ' disabled' : ''}>Send ${icon('arrow')}</button>${turns.length ? '<button type="button" class="btn quiet" data-clear-tutor' + (asking ? ' disabled' : '') + '>Clear chat</button>' : ''}</div>
-        ${tutorMode !== 'search' ? '<small class="muted tutor-privacy">When AI is available, it uses your question and related course material.</small>' : ''}</form>`;
+        ${tutorMode !== 'search' ? '<small class="muted tutor-privacy">When AI is available, Groq receives your question, recent questions, and related course excerpts.</small>' : ''}</form>`;
   }
 
   async function refreshPortfolio() {

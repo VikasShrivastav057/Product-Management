@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { DatabaseSync } from 'node:sqlite';
 import { test } from 'node:test';
 import { createTutorIndex, handleTutor, searchTutor } from '../lib/tutor.mjs';
+import { createCourseHandler } from '../lib/course-server.mjs';
 
 const site = 'https://course.test';
 const content = JSON.parse(await readFile(new URL('../course-assets/course-content.json', import.meta.url), 'utf8'));
@@ -94,46 +95,92 @@ test('keeps a focused lesson from overriding stronger evidence or supplying an u
   assert.match(unclear.note, /topic|lesson/i);
 });
 
-test('generates a grounded reply with a bounded model request and a 20-question daily limit', async () => {
+test('the public course enables AI mode when the server has a Groq key and storage', async () => {
+  for (const [configuration, mode] of [
+    [{ DB: {}, groqApiKey: 'fixture-only' }, 'ai'],
+    [{ DB: {}, groqApiKey: '   ' }, 'search'],
+    [{ groqApiKey: 'fixture-only' }, 'search'],
+  ]) {
+    const handle = createCourseHandler(configuration);
+    const page = await handle(new Request(site));
+    const cookie = page.headers.get('set-cookie').split(';', 1)[0];
+    const response = await handle(new Request(`${site}/api/tutor`, { headers: { cookie } }));
+    assert.deepEqual(await response.json(), { mode });
+  }
+});
+
+test('generates a grounded Groq reply with a bounded request and a 20-question daily limit', async () => {
   const sqlite = new DatabaseSync(':memory:');
   try {
     sqlite.exec(migration);
     const DB = { prepare: (sql) => ({ bind: (...values) => ({ first: () => sqlite.prepare(sql).get(...values) ?? null }) }) };
-    const env = { DB, OPENAI_API_KEY: 'fixture-only' };
+    const env = { DB, GROQ_API_KEY: 'fixture-only' };
     let modelCalls = 0;
     const fakeModel = async (url, init) => {
       modelCalls++;
       const payload = JSON.parse(init.body);
-      assert.equal(url, 'https://api.openai.com/v1/responses');
-      assert.equal(payload.store, false);
-      assert.equal(payload.max_output_tokens, 520);
+      assert.equal(url, 'https://api.groq.com/openai/v1/chat/completions');
+      assert.equal(init.method, 'POST');
+      assert.ok(init.signal instanceof AbortSignal);
+      assert.equal(payload.model, 'openai/gpt-oss-20b');
+      assert.equal(payload.reasoning_effort, 'low');
+      assert.equal(payload.max_completion_tokens, 768);
+      assert.deepEqual(payload.messages.map(({ role }) => role), ['system', 'user']);
+      assert.match(payload.messages[0].content, /Cite course sources/);
       assert.equal(init.headers.Authorization, 'Bearer fixture-only');
-      const context = JSON.parse(payload.input);
+      const context = JSON.parse(payload.messages[1].content);
       assert.equal(context.question, joinQuestion);
+      assert.deepEqual(context.earlierLearnerQuestions, ['Previous question', 'Most recent question']);
       assert.ok(context.sources.length >= 2);
       assert.ok(context.sources.every((source) => Object.keys(source).sort().join() === 'excerpts,number,title'));
-      return Response.json({ output: [{ type: 'message', content: [{ type: 'output_text', text: 'Keep all eligible users in the denominator [1].' }] }] });
+      return Response.json({ choices: [{ finish_reason: 'stop', message: { content: 'Keep all eligible users in the denominator [1].', reasoning: 'Hidden fixture reasoning' } }] });
     };
     assert.equal((await (await handleTutor(ask(joinQuestion, { searchOnly: true }), env, index, fakeModel)).json()).mode, 'search');
+    assert.equal((await (await handleTutor(ask('Where did dinosaurs live?'), env, index, fakeModel)).json()).mode, 'search');
     for (let i = 0; i < 20; i++) {
-      const reply = await (await handleTutor(ask(), env, index, fakeModel)).json();
+      const previous = ['Discard this', 'Previous question', 'Most recent question'];
+      const reply = await (await handleTutor(ask(joinQuestion, { previous }), env, index, fakeModel)).json();
       assert.equal(reply.mode, 'ai');
-      assert.match(reply.answer, /denominator/);
+      assert.equal(reply.answer, 'Keep all eligible users in the denominator [1].');
     }
     const limited = await (await handleTutor(ask(), env, index, fakeModel)).json();
     assert.match(limited.note, /daily AI question limit/);
     assert.equal(limited.answer, `“${limited.sources[0].excerpts[0]}” [1]`);
     assert.equal(modelCalls, 20);
-    const degraded = await (await handleTutor(ask(joinQuestion, { user: 'other' }), env, index, () => new Response(null, { status: 503 }))).json();
-    assert.equal(degraded.mode, 'search');
-    assert.ok(degraded.sources.length);
-    assert.equal(degraded.answer, `“${degraded.sources[0].excerpts[0]}” [1]`);
   } finally { sqlite.close(); }
+});
+
+test('Groq errors and incomplete replies fall back to the course references', async () => {
+  const env = {
+    GROQ_API_KEY: 'fixture-only',
+    GROQ_TUTOR_MODEL: 'another-chat-model',
+    DB: { prepare: () => ({ bind: () => ({ first: async () => ({ count: 1 }) }) }) },
+  };
+  for (const [providerReply, note] of [
+    [new Response('private provider error', { status: 401 }), /temporarily unavailable/],
+    [new Response(null, { status: 503 }), /temporarily unavailable/],
+    [new Response(null, { status: 429 }), /usage limit/],
+    [Response.json({ choices: [{ message: { content: null } }] }), /couldn’t finish/],
+    [Response.json({ choices: [{ finish_reason: 'length', message: { content: 'Truncated model text' } }] }), /couldn’t finish/],
+  ]) {
+    let payload;
+    const response = await handleTutor(ask(), env, index, async (url, init) => {
+      payload = JSON.parse(init.body);
+      return providerReply;
+    });
+    assert.equal(payload.model, 'another-chat-model');
+    assert.equal(payload.reasoning_effort, undefined);
+    assert.equal(response.status, 200);
+    const reply = await response.json();
+    assert.equal(reply.mode, 'search');
+    assert.equal(reply.answer, `“${reply.sources[0].excerpts[0]}” [1]`);
+    assert.match(reply.note, note);
+  }
 });
 
 test('returns course excerpts if the AI usage counter is unavailable', async () => {
   const env = {
-    OPENAI_API_KEY: 'fixture-only',
+    GROQ_API_KEY: 'fixture-only',
     DB: { prepare: () => ({ bind: () => ({ first: async () => { throw new Error('Fixture storage outage'); } }) }) },
   };
   let modelCalls = 0;
