@@ -5,7 +5,7 @@ const suggestions = [
 ];
 const lessonSuggestions = ['What should I remember from this lesson?', 'Can you show a practical example?'];
 
-export function createStudio({ getCourse, escape, icon, blocks, render, updateTutorSurface }) {
+export function createStudio({ getCourse, escape, inline, icon, blocks, render, updateTutorSurface }) {
   let entries = null;
   let portfolioLoading = false;
   let portfolioLoadError = '';
@@ -101,7 +101,7 @@ export function createStudio({ getCourse, escape, icon, blocks, render, updateTu
   function tutorContent({ embedded = false, lesson = false } = {}) {
     const isAI = tutorMode === 'ai';
     const status = isAI ? 'AI answers with course references' : tutorMode === 'search' ? 'Answers from the course material' : 'Answers with course references';
-    const messages = turns.map(({ asked, reply }) => `<article class="tutor-turn"><p class="tutor-question">${escape(asked)}</p>${reply.answer ? `<div class="tutor-answer">${reply.mode === 'search' ? '<span class="tutor-answer-label">From the course</span>' : ''}${escape(reply.answer)}</div>` : ''}${reply.note ? `<p class="muted">${escape(reply.note)}</p>` : ''}
+    const messages = turns.map(({ asked, reply }) => `<article class="tutor-turn"><p class="tutor-question">${escape(asked)}</p>${reply.answer ? `<div class="tutor-answer">${reply.mode === 'search' ? '<span class="tutor-answer-label">From the course</span>' : ''}${inline(reply.answer)}</div>` : ''}${reply.note ? `<p class="muted">${escape(reply.note)}</p>` : ''}
       ${reply.sources?.length ? `<div class="tutor-sources"><strong>${reply.answer ? 'Course references' : 'Matching course material'}</strong><ol>${reply.sources.map((source) => `<li><a class="text-link" href="${sourceHref(source.href)}">${escape(source.title)}</a><small>${escape(source.section)}</small>${reply.answer ? '' : `<p>${escape(source.excerpts[0])}</p>`}</li>`).join('')}</ol></div>` : !reply.note ? '<p>No matching lesson found. Try a course term such as retention, RICE, or SQL joins.</p>' : ''}</article>`).join('');
     const welcome = lesson ? 'Ask about a term, an example, or the main idea in this lesson.' : 'Ask a question about any module in the course.';
     const starterQuestions = lesson ? lessonSuggestions : suggestions;

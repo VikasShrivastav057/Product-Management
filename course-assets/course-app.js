@@ -411,7 +411,7 @@ async function action(fn) {
   finally { working = false; render(); }
 }
 
-const studio = createStudio({ getCourse: () => course, escape, icon, blocks, render, updateTutorSurface });
+const studio = createStudio({ getCourse: () => course, escape, inline, icon, blocks, render, updateTutorSurface });
 const practice = createModulePractice({
   currentModule: currentPracticeModule,
   reviewHref: (mod) => mod === guesstimatePractice ? opportunitySizingLesson : lessonHref(mod.id, 0),

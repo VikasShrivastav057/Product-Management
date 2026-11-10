@@ -127,9 +127,12 @@ test('generates a grounded Groq reply with a bounded request and a 20-question d
       assert.ok(init.signal instanceof AbortSignal);
       assert.equal(payload.model, 'openai/gpt-oss-20b');
       assert.equal(payload.reasoning_effort, 'low');
+      assert.equal(payload.temperature, 0.2);
       assert.equal(payload.max_completion_tokens, 768);
       assert.deepEqual(payload.messages.map(({ role }) => role), ['system', 'user']);
       assert.match(payload.messages[0].content, /Cite course sources/);
+      assert.match(payload.messages[0].content, /worked example, use the numbers, scales, and units/);
+      assert.match(payload.messages[0].content, /Write in plain text/);
       assert.equal(init.headers.Authorization, 'Bearer fixture-only');
       const context = JSON.parse(payload.messages[1].content);
       assert.equal(context.question, joinQuestion);
